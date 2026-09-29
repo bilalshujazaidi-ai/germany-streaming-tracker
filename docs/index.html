@@ -149,14 +149,14 @@ footer a{color:var(--accent);}
     <div class="rank" id="rankList" style="margin-bottom:26px"></div>
     <p class="eyebrow" id="monthEyebrow">Launched this month</p>
     <div class="ledger"><table class="sched-table"><thead><tr>
-      <th class="num">Date</th><th>Title</th><th>Service</th><th>Season</th><th>Status</th><th>Origin</th><th class="num">Since</th><th>IMDb</th>
+      <th class="num">Release date</th><th>Title</th><th>Service</th><th>Season</th><th>Status</th><th>Origin</th><th class="num">Since</th><th>IMDb</th>
     </tr></thead><tbody id="monthLedger"></tbody></table></div>
   </section>
 
   <section id="upcomingView" style="display:none">
     <p class="eyebrow">Announced, not yet available</p>
     <div class="ledger"><table class="sched-table"><thead><tr>
-      <th class="num">Date</th><th>Title</th><th>Service</th><th>Season</th><th>Status</th><th>Origin</th><th class="num">Since</th><th>IMDb</th>
+      <th class="num">Release date</th><th>Title</th><th>Service</th><th>Season</th><th>Status</th><th>Origin</th><th class="num">Since</th><th>IMDb</th>
     </tr></thead><tbody id="upLedger"></tbody></table></div>
   </section>
 
@@ -176,7 +176,9 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const PAD = n => String(n).padStart(2,'0');
 const isoOf = d => `${d.getFullYear()}-${PAD(d.getMonth()+1)}-${PAD(d.getDate())}`;
-const shortDate = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); };
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+// dd-mmm-yy, e.g. 30-Sep-26
+const shortDate = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}-${MON[+m-1]}-${y.slice(2)}`; };
 const monthLabel = ym => { const [y,m]=ym.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'}); };
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
