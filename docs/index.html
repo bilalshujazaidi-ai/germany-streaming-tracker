@@ -146,7 +146,7 @@ footer a{color:var(--accent);}
     </div>
   </div>
 
-  <p class="filter-note">Scope: US / UK / Canada / Australia origin (or none listed) · series started 2016 or later · all services incl. Mediatheken &amp; add-on channels</p>
+  <p class="filter-note">Scope: US / UK / Canada / Australia origin (or none listed) · series started 2016 or later · all services incl. Mediatheken &amp; add-on channels · excludes reality, documentary, kids, true-crime docuseries and talk/clip/cooking shows</p>
 
   <section id="monthView">
     <div class="stats" id="statGrid"></div>
@@ -217,7 +217,26 @@ function statusOf(r){
 const STATUS_CLASS = { confirmed: 'tv', scheduled: 'movie', upcoming: 'doc', dropped: 'mag' };
 const pill = (cls, txt) => `<span class="type-pill ${cls}">${txt}</span>`;
 
+// Content-type exclusions (dashboard + export only; the database keeps
+// everything, so this is reversible). Matched on fernsehserien.de's own
+// genre tags.
+const EXCLUDED_GENRES = new Set([
+  'Reality', 'Doku-Soap', 'Scripted Reality', 'Dating-Show', 'Gameshow',   // reality TV
+  'Dokumentation', 'Reportage', 'Doku-Drama',                               // documentary
+  'Kinder', 'Puppenserie',                                                   // kids
+  'Talkshow', 'Clipshow', 'Kochen & Essen',                                  // talk / clip / cooking
+]);
+function isExcludedType(r){
+  const genres = (r.genres || '').split(',').map(g => g.trim()).filter(Boolean);
+  if (genres.some(g => EXCLUDED_GENRES.has(g))) return true;
+  // True-crime docuseries: tagged True Crime with no other genre. Scripted
+  // true-crime dramas carry Drama/Thriller/etc. alongside it and stay.
+  if (genres.length === 1 && genres[0] === 'True Crime') return true;
+  return false;
+}
+
 function passesControls(r){
+  if (isExcludedType(r)) return false;
   if (state.provider !== '__ALL__' && r.provider_slug !== state.provider) return false;
   if (state.prem === 'prem' && !r.is_premiere) return false;
   return true;
@@ -388,7 +407,7 @@ async function boot(){
     ? `Data last written: ${shortDate(log[0].run_date)}, ${toUkTime(log[0].scraped_at)} UK time` : 'No scrape logged yet';
 
   const sel = document.getElementById('providerSelect');
-  const provs = {}; RELEASES.forEach(r => { provs[r.provider_slug] = r.provider_name + (r.channel_via ? ` (via ${r.channel_via})` : ''); });
+  const provs = {}; RELEASES.filter(r => !isExcludedType(r)).forEach(r => { provs[r.provider_slug] = r.provider_name + (r.channel_via ? ` (via ${r.channel_via})` : ''); });
   Object.entries(provs).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([slug,name]) => sel.insertAdjacentHTML('beforeend', `<option value="${esc(slug)}">${esc(name)}</option>`));
   sel.addEventListener('change', () => { state.provider = sel.value; render(); });
 
