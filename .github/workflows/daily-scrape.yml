@@ -1,0 +1,53 @@
+name: Daily Streaming Scrape
+
+on:
+  schedule:
+    # Hourly from 08:00 to 23:00 UTC. Same idea as the Poland tracker: GitHub
+    # sometimes delays or drops scheduled runs, so several chances a day make
+    # sure one lands. scraper.py records each day in de_scrape_log and exits
+    # straight away if today is already done, so the extra runs cost nothing.
+    - cron: "5 8-23 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Re-scrape even if today was already done (yes/no)"
+        required: false
+        default: "no"
+        type: string
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install -r requirements.txt
+
+      - name: Run scraper (retrying on failure)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          FORCE: ${{ inputs.force == 'yes' && '1' || '' }}
+        run: |
+          # A run either writes the whole day or nothing is logged for it, so
+          # a plain retry after a transient network error is safe.
+          max_attempts=4
+          delay=60
+          for attempt in $(seq 1 "$max_attempts"); do
+            echo "=== Attempt $attempt of $max_attempts ==="
+            if python scraper.py; then
+              exit 0
+            fi
+            if [ "$attempt" -lt "$max_attempts" ]; then
+              echo "Retrying in ${delay}s..."
+              sleep "$delay"
+              delay=$((delay * 2))
+            fi
+          done
+          echo "All $max_attempts attempts failed."
+          exit 1

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Germany Streaming Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#F6F4EF;
+  --surface:#FFFFFF;
+  --surface-alt:#EFEDE5;
+  --ink:#1E211D;
+  --muted:#6B7268;
+  --accent:#2B6E63;
+  --accent-ink:#0E332C;
+  --accent-soft:#DEEAE6;
+  --line:#E3DFD5;
+  --warn:#B65C2E;
+  --warn-soft:#F5E4D8;
+  --info:#3D6FA8;
+  --info-soft:#DDE7F2;
+  --info-ink:#1F3A5C;
+  --shadow: 0 1px 2px rgba(30,33,29,.06), 0 8px 24px -16px rgba(30,33,29,.25);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#14171A; --surface:#1B1F22; --surface-alt:#20262A; --ink:#ECEEEA;
+    --muted:#98A29B; --accent:#4FBFA8; --accent-ink:#DFF7F0;
+    --accent-soft:rgba(79,191,168,.16); --line:#2B3134;
+    --warn:#E08A54; --warn-soft:rgba(224,138,84,.16);
+    --info:#7FB0E0; --info-soft:rgba(127,176,224,.16); --info-ink:#DCEBFA;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -16px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171A; --surface:#1B1F22; --surface-alt:#20262A; --ink:#ECEEEA;
+  --muted:#98A29B; --accent:#4FBFA8; --accent-ink:#DFF7F0;
+  --accent-soft:rgba(79,191,168,.16); --line:#2B3134;
+  --warn:#E08A54; --warn-soft:rgba(224,138,84,.16);
+  --info:#7FB0E0; --info-soft:rgba(127,176,224,.16); --info-ink:#DCEBFA;
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 8px 28px -16px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif;padding:0 20px;}
+.wrap{max-width:960px;margin:0 auto;padding-block:28px 60px;}
+.mast{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px 20px;padding-bottom:18px;border-bottom:2px solid var(--ink);margin-bottom:20px;}
+.mast h1{font-family:"Libre Franklin",sans-serif;font-weight:800;font-size:28px;letter-spacing:-0.01em;margin:0;text-wrap:balance;}
+.mast .tag{font-size:13px;color:var(--muted);font-family:"IBM Plex Mono",monospace;}
+#lastRun{margin-top:4px;}
+#lastScraped{margin-top:4px;}
+.tag.warn-text{color:var(--warn);}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:22px;}
+.seg{display:inline-flex;background:var(--surface-alt);border-radius:8px;padding:3px;gap:2px;}
+.seg button{appearance:none;border:none;background:transparent;color:var(--muted);font:600 13px/1 "IBM Plex Sans",sans-serif;padding:8px 14px;border-radius:6px;cursor:pointer;}
+.seg button.active{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);}
+.seg button:focus-visible, select:focus-visible, .daycell:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+select{font:500 13px "IBM Plex Sans",sans-serif;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;}
+.spacer{flex:1;}
+.datepick{display:flex;align-items:center;gap:6px;font-family:"IBM Plex Mono",monospace;font-size:13px;}
+.datepick button{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;width:28px;height:28px;cursor:pointer;font-size:14px;line-height:1;}
+.datepick .cur{min-width:118px;text-align:center;font-weight:600;}
+.eyebrow{font:600 11px/1 "IBM Plex Mono",monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+.filter-note{font:500 12px "IBM Plex Mono",monospace;color:var(--muted);margin:-6px 0 14px;}
+section{margin-bottom:34px;}
+.ledger{border-top:1px solid var(--line);overflow-x:auto;}
+.sched-table{width:100%;border-collapse:collapse;font-size:14px;min-width:700px;}
+.sched-table thead th{text-align:left;font:600 11px/1 "IBM Plex Mono",monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 10px 10px;border-bottom:2px solid var(--ink);white-space:nowrap;}
+.sched-table thead th.num{text-align:right;}
+.sched-table tbody td{padding:11px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+.sched-table tbody tr:hover{background:var(--surface-alt);}
+.sched-table .t-title{font-family:"Libre Franklin",sans-serif;font-weight:700;font-size:14.5px;}
+.sched-table .t-origname{color:var(--muted);font-style:italic;font-size:13.5px;}
+.sched-table td.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;color:var(--ink);}
+.sched-table .t-time{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right;color:var(--accent);font-weight:600;white-space:nowrap;}
+.sched-table .t-time .dur{display:block;color:var(--muted);font-weight:400;font-size:11px;}
+.sched-table .t-origin{color:var(--muted);font-size:13px;}
+.sched-table .col-channel{display:none;font-size:13px;color:var(--muted);white-space:nowrap;}
+.sched-table.all-mode .col-channel{display:table-cell;}
+.imdb-link{font:600 12px "IBM Plex Sans",sans-serif;color:var(--accent);text-decoration:none;white-space:nowrap;}
+.imdb-link:hover{text-decoration:underline;}
+.imdb-link.unmatched{color:var(--muted);font-weight:500;}
+.type-pill{display:inline-block;font:600 11px "IBM Plex Mono",monospace;letter-spacing:.03em;text-transform:uppercase;padding:3px 8px;border-radius:5px;white-space:nowrap;}
+.type-pill.movie{background:var(--surface-alt);color:var(--muted);}
+.type-pill.tv{background:var(--accent-soft);color:var(--accent-ink);}
+.type-pill.doc{background:var(--info-soft);color:var(--info-ink);}
+.type-pill.mag{background:var(--warn-soft);color:var(--warn);}
+.empty{padding:26px 0;color:var(--muted);font-size:14px;}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:22px;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;}
+.stat .n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-weight:600;font-size:22px;}
+.stat .l{font-size:12px;color:var(--muted);margin-top:2px;}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:26px;}
+.daycell{aspect-ratio:1;border-radius:6px;display:flex;align-items:center;justify-content:center;font:600 12px "IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;cursor:default;border:1px solid var(--line);color:var(--muted);background:var(--surface);}
+.daycell.has{background:var(--accent-soft);color:var(--accent-ink);border-color:transparent;cursor:pointer;}
+.daycell.missing{background:var(--warn-soft);color:var(--warn);border-style:dashed;}
+.daycell.future{opacity:.35;}
+.rank{border-top:1px solid var(--line);}
+.rank-row{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);}
+.rank-row .pos{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:13px;}
+.rank-row .name{font-weight:600;font-size:14px;}
+.rank-row .count{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;font-size:13px;color:var(--muted);white-space:nowrap;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-bottom:14px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block;}
+footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;}
+footer a{color:var(--accent);}
+@media (max-width:520px){ .mast h1{font-size:22px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mast">
+    <div>
+      <h1>Germany Streaming Tracker</h1>
+      <div class="tag">German streaming releases, logged daily. Source: fernsehserien.de</div>
+    </div>
+    <div style="text-align:right">
+      <div class="tag" id="statusTag">connecting…</div>
+      <div class="tag" id="lastRun">—</div>
+      <div class="tag" id="lastScraped">—</div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <select id="providerSelect"><option value="__ALL__">All services</option></select>
+    <div class="seg" id="viewSeg">
+      <button data-view="month" class="active">Launched</button>
+      <button data-view="upcoming">Upcoming</button>
+      <button data-view="changes">Date changes</button>
+    </div>
+    <div class="seg" id="premSeg">
+      <button data-prem="all" class="active">All releases</button>
+      <button data-prem="prem">Premieres only</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="datepick" id="monthNav">
+      <button id="prevMonth" aria-label="Previous month">‹</button>
+      <span class="cur" id="curMonth">—</span>
+      <button id="nextMonth" aria-label="Next month">›</button>
+    </div>
+  </div>
+
+  <p class="filter-note">Scope: US / UK / Canada / Australia origin (or none listed) · series started 2016 or later · all services incl. Mediatheken &amp; add-on channels</p>
+
+  <section id="monthView">
+    <div class="stats" id="statGrid"></div>
+    <p class="eyebrow">Releases by service</p>
+    <div class="rank" id="rankList" style="margin-bottom:26px"></div>
+    <p class="eyebrow" id="monthEyebrow">Launched this month</p>
+    <div class="ledger"><table class="sched-table"><thead><tr>
+      <th class="num">Date</th><th>Title</th><th>Service</th><th>Season</th><th>Status</th><th>Origin</th><th class="num">Since</th><th>IMDb</th>
+    </tr></thead><tbody id="monthLedger"></tbody></table></div>
+  </section>
+
+  <section id="upcomingView" style="display:none">
+    <p class="eyebrow">Announced, not yet available</p>
+    <div class="ledger"><table class="sched-table"><thead><tr>
+      <th class="num">Date</th><th>Title</th><th>Service</th><th>Season</th><th>Status</th><th>Origin</th><th class="num">Since</th><th>IMDb</th>
+    </tr></thead><tbody id="upLedger"></tbody></table></div>
+  </section>
+
+  <section id="changesView" style="display:none">
+    <p class="eyebrow">Release dates that moved, newest first</p>
+    <div class="ledger"><table class="sched-table"><thead><tr>
+      <th class="num">Noticed</th><th>Title</th><th>Service</th><th>Season</th><th class="num">Was</th><th class="num">Now</th>
+    </tr></thead><tbody id="chLedger"></tbody></table></div>
+  </section>
+
+  <footer>Written by a scraper that runs daily on <a href="https://github.com/bilalshujazaidi-ai/germany-streaming-tracker" target="_blank" rel="noopener">GitHub Actions</a>. It reads fernsehserien.de's streaming guide (upcoming and newly available lists) and stores it in Supabase. <b>Confirmed</b> means the title appeared in the "Neu verfügbar" list. <b>Scheduled</b> means its announced date has passed but it wasn't seen as newly available. <b>Dropped</b> means it left the upcoming list before its date. Nothing on this page is edited by hand.</footer>
+</div>
+
+<script>
+const SUPABASE_URL = "https://vpgiavduczlqvfcigmdg.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZ2lhdmR1Y3pscXZmY2lnbWRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0NzU4MjQsImV4cCI6MjEwNTA1MTgyNH0.5AicyIbqQMVUQ63_WRsahYPNbYcN0ojFN96u4Vlf7ZM";
+
+const PAD = n => String(n).padStart(2,'0');
+const isoOf = d => `${d.getFullYear()}-${PAD(d.getMonth()+1)}-${PAD(d.getDate())}`;
+const shortDate = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); };
+const monthLabel = ym => { const [y,m]=ym.split('-'); return new Date(+y,+m-1,1).toLocaleDateString('en-GB',{month:'long',year:'numeric'}); };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let state = { view: 'month', month: null, provider: '__ALL__', prem: 'all' };
+let RELEASES = [], CHANGES = [], LATEST_RUN = null;
+
+async function sb(path, params) {
+  const out = [];
+  for (let offset = 0; ; offset += 1000) {
+    const url = new URL(`${SUPABASE_URL}/rest/v1/${path}`);
+    Object.entries(Object.assign({}, params, {limit: 1000, offset})).forEach(([k,v]) => url.searchParams.set(k, v));
+    const res = await fetch(url, { headers: { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` } });
+    if (!res.ok) { console.error('Supabase error', res.status, await res.text()); return out; }
+    const batch = await res.json(); out.push(...batch);
+    if (batch.length < 1000) return out;
+  }
+}
+
+// Launched = seen in "Neu verfügbar" (confirmed) or announced date has passed
+// (scheduled). Dropped = vanished from the upcoming list while its date was
+// still in the future.
+function statusOf(r){
+  if (r.available_date) return { key: 'confirmed', label: 'Confirmed', date: r.available_date };
+  if (r.expected_date && LATEST_RUN && r.expected_date > LATEST_RUN) {
+    if (r.last_seen_upcoming && r.last_seen_upcoming < LATEST_RUN) return { key: 'dropped', label: 'Dropped', date: r.expected_date };
+    return { key: 'upcoming', label: 'Upcoming', date: r.expected_date };
+  }
+  if (r.expected_date) return { key: 'scheduled', label: 'Scheduled', date: r.expected_date };
+  return { key: 'upcoming', label: 'Date TBA', date: null };
+}
+const STATUS_CLASS = { confirmed: 'tv', scheduled: 'movie', upcoming: 'doc', dropped: 'mag' };
+const pill = (cls, txt) => `<span class="type-pill ${cls}">${txt}</span>`;
+
+function passesControls(r){
+  if (state.provider !== '__ALL__' && r.provider_slug !== state.provider) return false;
+  if (state.prem === 'prem' && !r.is_premiere) return false;
+  return true;
+}
+
+function providerCell(r){
+  return `${esc(r.provider_name)}${r.channel_via ? `<span class="dur" style="display:block;color:var(--muted);font-size:11px">via ${esc(r.channel_via)}</span>` : ''}`;
+}
+function seasonCell(r){
+  const s = r.season_label === '—' ? 'Miniseries / special' : r.season_label;
+  return `${esc(s)}${r.is_premiere ? ' ' + pill('tv','Premiere') : ''}`;
+}
+function imdbCell(r){
+  return r.imdb_url
+    ? `<a class="imdb-link" href="${r.imdb_url}" target="_blank" rel="noopener">IMDb ↗</a>`
+    : `<a class="imdb-link unmatched" href="https://www.imdb.com/find/?q=${encodeURIComponent(r.original_title || r.title)}" target="_blank" rel="noopener">search ↗</a>`;
+}
+function releaseRow(r){
+  const st = statusOf(r);
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="t-time">${shortDate(st.date)}</td>
+    <td><div class="t-title"><a href="https://www.fernsehserien.de/${r.series_slug}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${esc(r.title)}</a></div>${r.original_title ? `<div class="t-origname">${esc(r.original_title)}</div>` : ''}</td>
+    <td>${providerCell(r)}</td>
+    <td>${seasonCell(r)}</td>
+    <td>${pill(STATUS_CLASS[st.key], st.label)}</td>
+    <td class="t-origin">${esc(r.countries || (r.countries_tmdb ? r.countries_tmdb + ' (TMDb)' : '—'))}</td>
+    <td class="num">${r.start_year || '—'}</td>
+    <td>${imdbCell(r)}</td>`;
+  return tr;
+}
+
+function renderMonth(){
+  document.getElementById('curMonth').textContent = monthLabel(state.month);
+  const rows = RELEASES.filter(passesControls).map(r => [r, statusOf(r)])
+    .filter(([r, st]) => (st.key === 'confirmed' || st.key === 'scheduled') && st.date && st.date.startsWith(state.month))
+    .sort((a,b) => a[1].date.localeCompare(b[1].date) || a[0].title.localeCompare(b[0].title));
+
+  const statGrid = document.getElementById('statGrid'); statGrid.innerHTML = '';
+  const series = new Set(rows.map(([r]) => r.series_slug));
+  const prem = rows.filter(([r]) => r.is_premiere).length;
+  const conf = rows.filter(([, st]) => st.key === 'confirmed').length;
+  const services = new Set(rows.map(([r]) => r.provider_slug));
+  [['Releases', rows.length], ['Distinct series', series.size], ['Premieres', prem], ['Confirmed', conf], ['Services', services.size]]
+    .forEach(([l,n]) => { const s=document.createElement('div'); s.className='stat'; s.innerHTML=`<div class="n">${n}</div><div class="l">${l}</div>`; statGrid.appendChild(s); });
+
+  const counts = {};
+  rows.forEach(([r]) => { counts[r.provider_name] = (counts[r.provider_name]||0) + 1; });
+  const rank = document.getElementById('rankList'); rank.innerHTML = '';
+  const ranked = Object.entries(counts).sort((a,b)=>b[1]-a[1]);
+  if (!ranked.length) rank.innerHTML = '<div class="empty">Nothing logged for this month yet.</div>';
+  ranked.forEach(([name,c],i) => { const d=document.createElement('div'); d.className='rank-row'; d.innerHTML=`<div class="pos">${i+1}</div><div class="name">${esc(name)}</div><div class="count">${c} release${c>1?'s':''}</div>`; rank.appendChild(d); });
+
+  document.getElementById('monthEyebrow').textContent = `Launched in ${monthLabel(state.month)}`;
+  const tb = document.getElementById('monthLedger'); tb.innerHTML = '';
+  if (!rows.length) tb.innerHTML = '<tr><td colspan="8" class="empty">No launches logged for this month yet. Tracking started on the first scrape date.</td></tr>';
+  rows.forEach(([r]) => tb.appendChild(releaseRow(r)));
+}
+
+function renderUpcoming(){
+  const rows = RELEASES.filter(passesControls).filter(r => statusOf(r).key === 'upcoming')
+    .sort((a,b) => (a.expected_date||'9999').localeCompare(b.expected_date||'9999') || a.title.localeCompare(b.title));
+  const tb = document.getElementById('upLedger'); tb.innerHTML = '';
+  if (!rows.length) tb.innerHTML = '<tr><td colspan="8" class="empty">Nothing upcoming for this selection.</td></tr>';
+  rows.forEach(r => tb.appendChild(releaseRow(r)));
+}
+
+function renderChanges(){
+  const byKey = Object.fromEntries(RELEASES.map(r => [`${r.series_slug}|${r.provider_slug}|${r.season_label}`, r]));
+  const rows = CHANGES.map(c => [c, byKey[`${c.series_slug}|${c.provider_slug}|${c.season_label}`]])
+    .filter(([, r]) => r && passesControls(r));
+  const tb = document.getElementById('chLedger'); tb.innerHTML = '';
+  if (!rows.length) tb.innerHTML = '<tr><td colspan="6" class="empty">No release-date changes seen yet.</td></tr>';
+  rows.forEach(([c, r]) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="t-time">${shortDate(c.seen_on)}</td><td class="t-title">${esc(r.title)}</td><td>${providerCell(r)}</td><td>${seasonCell(r)}</td><td class="num">${shortDate(c.old_date)}</td><td class="num">${shortDate(c.new_date)}</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function render(){
+  document.querySelectorAll('#viewSeg button').forEach(b => b.classList.toggle('active', b.dataset.view===state.view));
+  document.getElementById('monthView').style.display = state.view==='month' ? '' : 'none';
+  document.getElementById('upcomingView').style.display = state.view==='upcoming' ? '' : 'none';
+  document.getElementById('changesView').style.display = state.view==='changes' ? '' : 'none';
+  document.getElementById('monthNav').style.display = state.view==='month' ? '' : 'none';
+  if (state.view==='month') renderMonth(); else if (state.view==='upcoming') renderUpcoming(); else renderChanges();
+}
+
+function toUkTime(isoString){
+  return new Date(isoString).toLocaleString('en-GB', { timeZone: 'Europe/London', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadLastRun(){
+  const el = document.getElementById('lastRun');
+  try {
+    const res = await fetch('https://api.github.com/repos/bilalshujazaidi-ai/germany-streaming-tracker/actions/workflows/daily-scrape.yml/runs?per_page=1');
+    if (!res.ok) throw new Error('GitHub API ' + res.status);
+    const { workflow_runs } = await res.json();
+    if (!workflow_runs || !workflow_runs.length){ el.textContent = 'No automation runs found'; return; }
+    const run = workflow_runs[0];
+    const trigger = run.event === 'schedule' ? 'scheduled' : (run.event === 'workflow_dispatch' ? 'manual' : run.event);
+    el.textContent = `Automation last ran: ${toUkTime(run.updated_at)} UK time (${trigger}, ${run.conclusion || run.status})`;
+    el.classList.toggle('warn-text', run.conclusion && run.conclusion !== 'success');
+  } catch (err) { el.textContent = 'Automation status unavailable'; }
+}
+
+async function boot(){
+  const now = new Date();
+  state.month = `${now.getFullYear()}-${PAD(now.getMonth()+1)}`;
+  loadLastRun();
+
+  const [log, releases, changes] = await Promise.all([
+    sb('de_scrape_log', { select: 'run_date,scraped_at', order: 'run_date.desc', limit: 1 }),
+    sb('de_releases', { select: '*' }),
+    sb('de_date_changes', { select: '*', order: 'seen_on.desc,id.desc' }),
+  ]);
+  RELEASES = releases; CHANGES = changes;
+  LATEST_RUN = log.length ? log[0].run_date : null;
+  document.getElementById('statusTag').textContent = 'live';
+  document.getElementById('lastScraped').textContent = log.length
+    ? `Data last written: ${shortDate(log[0].run_date)}, ${toUkTime(log[0].scraped_at)} UK time` : 'No scrape logged yet';
+
+  const sel = document.getElementById('providerSelect');
+  const provs = {}; RELEASES.forEach(r => { provs[r.provider_slug] = r.provider_name + (r.channel_via ? ` (via ${r.channel_via})` : ''); });
+  Object.entries(provs).sort((a,b)=>a[1].localeCompare(b[1])).forEach(([slug,name]) => sel.insertAdjacentHTML('beforeend', `<option value="${esc(slug)}">${esc(name)}</option>`));
+  sel.addEventListener('change', () => { state.provider = sel.value; render(); });
+
+  document.querySelectorAll('#viewSeg button').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.view; render(); }));
+  document.querySelectorAll('#premSeg button').forEach(b => b.addEventListener('click', () => {
+    state.prem = b.dataset.prem; document.querySelectorAll('#premSeg button').forEach(x => x.classList.toggle('active', x===b)); render();
+  }));
+  const shift = d => { const [y,m]=state.month.split('-').map(Number); const t=new Date(y,m-1+d,1); state.month=`${t.getFullYear()}-${PAD(t.getMonth()+1)}`; render(); };
+  document.getElementById('prevMonth').addEventListener('click', () => shift(-1));
+  document.getElementById('nextMonth').addEventListener('click', () => shift(1));
+  render();
+}
+boot();
+</script>
+</body>
+</html>
