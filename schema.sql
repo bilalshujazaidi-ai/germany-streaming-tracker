@@ -66,3 +66,10 @@ create policy "public read" on de_releases     for select using (true);
 create policy "public read" on de_date_changes for select using (true);
 create policy "public read" on de_scrape_log   for select using (true);
 create policy "public read" on de_title_links  for select using (true);
+
+-- Newer Supabase projects don't auto-grant table access to the API roles,
+-- so grant it explicitly: read-only for the public dashboard (anon), full
+-- access for the scraper (service_role).
+grant select on de_releases, de_date_changes, de_scrape_log, de_title_links to anon;
+grant select, insert, update, delete on de_releases, de_date_changes, de_scrape_log, de_title_links to service_role;
+grant usage, select on sequence de_date_changes_id_seq to service_role;
