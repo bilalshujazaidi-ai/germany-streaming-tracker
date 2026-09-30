@@ -64,12 +64,23 @@ def via_people(it):
                     continue
                 for c in get(f"person/{p['id']}/movie_credits").get("cast", []):
                     hits.setdefault(c["id"], [c, 0]); hits[c["id"]][1] += 3
-    best = []
+    ISO3 = {"USA":"US","GBR":"GB","ITA":"IT","FRA":"FR","BRA":"BR","JPN":"JP","KOR":"KR","ISR":"IL","NOR":"NO","ESP":"ES","DEU":"DE","CAN":"CA","AUS":"AU","URY":"UY","ARG":"AR","MEX":"MX","POL":"PL","DNK":"DK","SWE":"SE","IRL":"IE","BEL":"BE","NLD":"NL","CHE":"CH","AUT":"AT","PRT":"PT","CHN":"CN","IND":"IN"}
+    want_c = {ISO3.get(c.strip(), c.strip()[:2]) for c in (it["c"] or "").split(",") if c.strip()}
+    actors = {norm(a) for a in it["a"]}
+    pre = []
     for mid, (m, sc) in hits.items():
         y = yr(m)
         if not y or not it["y"] or abs(y - it["y"]) > 2:
             continue
-        best.append((sc - abs(y - it["y"]), m))
+        pre.append((sc - abs(y - it["y"]), m))
+    pre.sort(key=lambda b: -b[0])
+    best = []
+    for sc, m in pre[:6]:
+        det = get(f"movie/{m['id']}", append_to_response="credits")
+        cast = {norm(c["name"]) for c in det.get("credits", {}).get("cast", [])[:30]}
+        ch = len(actors & cast)
+        cm = bool(want_c & {c["iso_3166_1"] for c in det.get("production_countries", [])})
+        best.append((sc + 4*min(ch, 4) + 2*cm, m, ch, cm))
     best.sort(key=lambda b: -b[0])
     return best
 for rec, it in zip(out, items):
@@ -79,11 +90,11 @@ for rec, it in zip(out, items):
     if not best:
         rec["pass2"] = "no candidate"
         continue
-    sc, m = best[0]
+    sc, m, ch, cm = best[0]
     det = get(f"movie/{m['id']}", append_to_response="credits,external_ids")
     rec["p2"] = {"imdb": (det.get("external_ids") or {}).get("imdb_id"), "tmdb": m["id"],
                  "original": det.get("original_title"), "title_pt": get(f"movie/{m['id']}", language="pt-BR").get("title"),
-                 "year_tmdb": yr(m), "score": sc, "n_candidates": len(best),
+                 "year_tmdb": yr(m), "score": sc, "cast_hits": ch, "country_match": cm, "n_candidates": len(best), "margin": sc - (best[1][0] if len(best) > 1 else 0),
                  "runner_up": [(b[1].get("title"), yr(b[1])) for b in best[1:3]],
                  "directors": sorted(c["name"] for c in det.get("credits", {}).get("crew", []) if c.get("job") == "Director")}
 print("===RESULT===")
