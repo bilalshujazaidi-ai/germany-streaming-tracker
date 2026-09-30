@@ -1,0 +1,20 @@
+name: One-off IMDb lookup
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "base64 gzip JSON"
+        required: true
+        type: string
+jobs:
+  lookup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.txt
+      - env:
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+          PAYLOAD: ${{ inputs.payload }}
+        run: python oneoff_imdb_lookup.py
